@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>terrain-rs Online Simulator</title>
+  </head>
+  <body>
+    <h1>terrain-rs Online Simulator</h1>
+    <div class="container">
+      <div>
+        <h2>入力</h2>
+        <canvas id="canvas-editor" width="500" height="500" tabindex="1"></canvas>  
+        <p>
+          <button type="button" id="button-new">+ ノードを作成</button>
+          <button type="button" id="button-removeall">すべて削除</button>
+          <br>
+          <h3>選択中のノード</h3>
+          <div class="container">
+            <div>
+              <label for="slider-x">侵食速度</label>
+              <br>
+              <label for="ocean-checkbox">海にする</label>
+            </div>
+            <div>        
+              <input type="range" id="erodibility-slider" name="erodibility-slider" min="0" max="100" value="50">   
+              <br>       
+              <input type="checkbox" id="ocean-checkbox" name="ocean-checkbox" value="0">
+            </div>
+          </div>
+
+        </p>
+      </div>
+      <div class="splitter"></div>
+      <div>
+        <h2>出力</h2>
+        <canvas id="canvas-terrain" width="500" height="500" tabindex="1"></canvas>
+      </div>
+    </div>
+    <br>
+    <button type="button" id="button-start">生成開始</button>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

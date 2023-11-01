@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap');
+
+body {
+  text-align: center;
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+canvas {
+  border: 1px solid black;
+}
+
+button {
+  border: none;
+  padding: 0.5rem;
+  border-radius: 0.2rem;
+}
+
+.container {
+  display: flex;
+  width: fit-content;
+  gap: 1rem;
+  margin: auto;
+}
+
+.splitter {
+  min-width: 1px;
+  min-height: 1px;
+  background-color: gray;
+}
+
+@media (max-width: 1200px) {
+  .container {
+    flex-direction: column;
+  }
+}
+
+#button-removeall {
+  color: white;
+  background-color: rgb(250, 50, 50);
+}
+
+#button-removeall:hover {
+  background-color: rgb(230, 0, 0);
+}
+
+#button-removeall:active {
+  background-color: rgb(200, 0, 0);
+}
+
+#button-start {
+  padding: 0.5rem 2rem;
+}
