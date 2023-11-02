@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>terrain-rs Online Simulator</title>
+    <title>WEB Simulator for terrain-rs</title>
   </head>
   <body>
-    <h1>terrain-rs Online Simulator</h1>
+    <h1>WEB Simulator for terrain-rs</h1>
+    <h3>テンプレート</h3>
     <div class="container">
       <div>
         <h2>入力</h2>
@@ -36,10 +37,11 @@
       <div>
         <h2>出力</h2>
         <canvas id="canvas-terrain" width="500" height="500" tabindex="1"></canvas>
+        <br>
+        <button type="button" id="button-start">生成</button>
       </div>
+
     </div>
-    <br>
-    <button type="button" id="button-start">生成開始</button>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
