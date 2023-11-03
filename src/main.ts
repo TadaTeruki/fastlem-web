@@ -1,5 +1,7 @@
-import PriorityQueue from "ts-priority-queue";
-import init, { run_terrain_generator } from "../rust/pkg/rust.js";
+import init, {
+  run_terrain_generator,
+  nearest_node_buffer,
+} from "../rust/pkg/rust.js";
 import "./style.css";
 
 const MAX_ERODIBILITY = 0.8;
@@ -10,13 +12,6 @@ type Node = {
   y: number;
   erodibility: number;
   is_ocean: boolean;
-};
-
-type VoronoiPixel = {
-  px: number;
-  py: number;
-  sqdistance: number;
-  node_index: number;
 };
 
 class Nodes {
@@ -48,7 +43,61 @@ class Nodes {
 
 function updateTerrainCanvas(nodes: Nodes) {
   let canvas = document.getElementById("canvas-terrain") as HTMLCanvasElement;
-  run_terrain_generator(canvas, canvas.width, canvas.height, nodes.getNodes());
+  run_terrain_generator(canvas, canvas.width, canvas.height, 30000, 10, nodes.getNodes());
+}
+
+class Colormap {
+  colors: Array<[number, number, number]>;
+  weights: Array<number>;
+  constructor() {
+    this.colors = [
+      [190, 200, 120],
+      [180, 200, 80],
+      [25, 100, 25],
+    ];
+    this.weights = [0.0, 0.2, 1.0];
+  }
+
+  getColor(value: number) {
+    let i = 0;
+    while (i < this.weights.length && value > this.weights[i]) {
+      i++;
+    }
+    if (i == 0) {
+      return this.colors[0];
+    }
+    if (i == this.weights.length) {
+      return this.colors[this.colors.length - 1];
+    }
+    const color1 = this.colors[i - 1];
+    const color2 = this.colors[i];
+    const weight1 = this.weights[i - 1];
+    const weight2 = this.weights[i];
+    const ratio = (value - weight1) / (weight2 - weight1);
+    return [
+      Math.floor(color1[0] * (1 - ratio) + color2[0] * ratio),
+      Math.floor(color1[1] * (1 - ratio) + color2[1] * ratio),
+      Math.floor(color1[2] * (1 - ratio) + color2[2] * ratio),
+    ];
+  }
+}
+
+class Buffer {
+  buffer: Array<number>;
+  width: number;
+
+  constructor(buffer: Array<number>, width: number) {
+    this.buffer = buffer;
+    this.width = width;
+  }
+
+  get(x: number, y: number) {
+    return this.buffer[y * this.width + x];
+  }
+
+  set(x: number, y: number, value: number) {
+    this.buffer[y * this.width + x] = value;
+  }
 }
 
 class EditorCanvas {
@@ -56,8 +105,8 @@ class EditorCanvas {
   ctx: CanvasRenderingContext2D;
   nodes: Nodes;
   nodeCreation: boolean = false;
-  pixelScale: number = 2;
-  nearestBuffer: Array<Array<number>> | null = null;
+  pixelScale: number = 1;
+  nearestBuffer: Buffer | null = null;
   nodeChoosen: number | null = null;
 
   constructor() {
@@ -68,6 +117,62 @@ class EditorCanvas {
     this.canvas.oncontextmenu = function () {
       return false;
     };
+  }
+
+  getCursorX(e: MouseEvent) {
+    const rect = this.canvas.getBoundingClientRect();
+    return e.clientX - rect.left;
+  }
+
+  getCursorY(e: MouseEvent) {
+    const rect = this.canvas.getBoundingClientRect();
+    return e.clientY - rect.top;
+  }
+
+  nearestNodeIndex(x: number, y: number) {
+    if (this.nearestBuffer == null) {
+      return null;
+    }
+    let bufferWidth = Math.ceil(this.canvas.width / this.pixelScale);
+    let bufferHeight = Math.ceil(this.canvas.height / this.pixelScale);
+    let px = Math.floor(x / this.pixelScale);
+    let py = Math.floor(y / this.pixelScale);
+    if (px < 0 || px >= bufferWidth || py < 0 || py >= bufferHeight) {
+      return null;
+    }
+    return this.nearestBuffer.get(px, py);
+  }
+
+  addNode(e: MouseEvent) {
+    const inearest = this.nearestNodeIndex(
+      this.getCursorX(e),
+      this.getCursorY(e)
+    );
+    const nearest = inearest == null ? null : this.nodes.getNode(inearest);
+
+    this.nodes.addNode({
+      x: this.getCursorX(e),
+      y: this.getCursorY(e),
+      erodibility: nearest
+        ? nearest.erodibility
+        : (MAX_ERODIBILITY + MIN_ERODIBILITY) / 2,
+      is_ocean: nearest ? nearest.is_ocean : false,
+    });
+    this.nodeChoosen = this.nodes.getNodes().length - 1;
+  }
+
+  removeNodeAll() {
+    this.nodes = new Nodes();
+    this.nearestBuffer = null;
+    this.updateContext();
+  }
+
+  updateContext(extra?: () => void) {
+    this.drawImage();
+    this.drawNodes();
+    if (extra) {
+      extra();
+    }
   }
 
   start() {
@@ -140,8 +245,8 @@ class EditorCanvas {
         this.updateContext();
       } else {
         const inearest = this.nearestNodeIndex(
-          e.clientX - this.canvas.offsetLeft,
-          e.clientY - this.canvas.offsetTop
+          this.getCursorX(e),
+          this.getCursorY(e)
         );
         if (inearest != null) {
           this.nodeChoosen = inearest;
@@ -181,16 +286,16 @@ class EditorCanvas {
       this.updateContext(() => {
         if (this.nodeCreation) {
           this.drawSmallRect(
-            e.clientX - this.canvas.offsetLeft,
-            e.clientY - this.canvas.offsetTop,
+            this.getCursorX(e),
+            this.getCursorY(e),
             "#000",
             null,
             true
           );
         } else {
           const inearest = this.nearestNodeIndex(
-            e.clientX - this.canvas.offsetLeft,
-            e.clientY - this.canvas.offsetTop
+            this.getCursorX(e),
+            this.getCursorY(e)
           );
           if (inearest != null && this.nodeChoosen != null) {
             const nearest = this.nodes.getNode(inearest);
@@ -205,30 +310,6 @@ class EditorCanvas {
     });
 
     this.updateContext();
-  }
-
-  nearestNodeIndex(x: number, y: number) {
-    // search nearest using nearestBuffer
-    if (this.nearestBuffer == null) {
-      return null;
-    }
-    let bufferWidth = Math.ceil(this.canvas.width / this.pixelScale);
-    let bufferHeight = Math.ceil(this.canvas.height / this.pixelScale);
-    let px = Math.floor(x / this.pixelScale);
-    let py = Math.floor(y / this.pixelScale);
-    if (px < 0 || px >= bufferWidth || py < 0 || py >= bufferHeight) {
-      return null;
-    }
-    return this.nearestBuffer[py][px];
-  }
-
-  // with extra function, we can draw the nodes and the small rect
-  updateContext(extra?: () => void) {
-    this.drawImage();
-    this.drawNodes();
-    if (extra) {
-      extra();
-    }
   }
 
   drawImage() {
@@ -246,26 +327,32 @@ class EditorCanvas {
 
     const oceanShadow = 2;
 
+    const colormap = new Colormap();
+
     for (let y = 0; y < bufferHeight; y++) {
       for (let x = 0; x < bufferWidth; x++) {
         let color = [0, 0, 0];
-        if (this.nodes.getNode(this.nearestBuffer[y][x]).is_ocean) {
+        if (this.nodes.getNode(this.nearestBuffer.get(x, y)).is_ocean) {
           color = [30, 150, 255];
           if (
             x < oceanShadow ||
             y < oceanShadow ||
             !this.nodes.getNode(
-              this.nearestBuffer[y - oceanShadow][x - oceanShadow]
+              this.nearestBuffer.get(x - oceanShadow, y - oceanShadow)
             ).is_ocean
           ) {
             color = [15, 120, 240];
           }
         } else {
           const erodibility = this.nodes.getNode(
-            this.nearestBuffer[y][x]
+            this.nearestBuffer.get(x, y)
           ).erodibility;
-          let pixel = Math.floor(120 * erodibility) + 125;
-          color = [pixel, pixel, pixel];
+
+          const erodibilityRatio =
+            (erodibility - MIN_ERODIBILITY) /
+            (MAX_ERODIBILITY - MIN_ERODIBILITY);
+
+          color = colormap.getColor(1.0 - erodibilityRatio);
         }
 
         for (let k = 0; k < this.pixelScale; k++) {
@@ -307,69 +394,17 @@ class EditorCanvas {
       return;
     }
 
-    let queue = new PriorityQueue({
-      comparator: (a: VoronoiPixel, b: VoronoiPixel) => {
-        if (a.sqdistance == b.sqdistance) {
-          return a.node_index - b.node_index;
-        }
-        return a.sqdistance - b.sqdistance;
-      },
-    });
-
-    this.nodes.getNodes().forEach((node, index) => {
-      queue.queue({
-        px: Math.ceil(node.x / this.pixelScale),
-        py: Math.ceil(node.y / this.pixelScale),
-        node_index: index,
-        sqdistance: 0,
-      });
-    });
-
     let bufferWidth = Math.ceil(this.canvas.width / this.pixelScale);
     let bufferHeight = Math.ceil(this.canvas.height / this.pixelScale);
 
-    let visited = new Array<boolean>(bufferWidth * bufferHeight);
-
-    let nearestBuffer: Array<Array<number>> = new Array<Array<number>>(
-      bufferHeight
+    let buffer = nearest_node_buffer(
+      bufferWidth,
+      bufferHeight,
+      this.pixelScale,
+      this.nodes.getNodes()
     );
-    for (let i = 0; i < bufferHeight; i++) {
-      nearestBuffer[i] = new Array<number>(bufferWidth);
-    }
 
-    while (queue.length > 0) {
-      let pixel = queue.dequeue();
-      if (visited[pixel.px + pixel.py * bufferWidth]) continue;
-      visited[pixel.px + pixel.py * bufferWidth] = true;
-
-      nearestBuffer[pixel.py][pixel.px] = pixel.node_index;
-      let node = this.nodes.getNode(pixel.node_index);
-      const neighbours = [
-        { x: pixel.px, y: pixel.py - 1 },
-        { x: pixel.px - 1, y: pixel.py },
-        { x: pixel.px + 1, y: pixel.py },
-        { x: pixel.px, y: pixel.py + 1 },
-      ];
-      neighbours.forEach((neighbour) => {
-        if (
-          neighbour.x < 0 ||
-          neighbour.x >= bufferWidth ||
-          neighbour.y < 0 ||
-          neighbour.y >= bufferHeight
-        )
-          return;
-        let nx = neighbour.x * this.pixelScale;
-        let ny = neighbour.y * this.pixelScale;
-        let sqdist = Math.pow(nx - node.x, 2) + Math.pow(ny - node.y, 2);
-        queue.queue({
-          px: neighbour.x,
-          py: neighbour.y,
-          node_index: pixel.node_index,
-          sqdistance: sqdist,
-        });
-      });
-    }
-    this.nearestBuffer = nearestBuffer;
+    this.nearestBuffer = new Buffer(Array.from(buffer), bufferWidth);
   }
 
   drawSmallRect(
@@ -426,30 +461,6 @@ class EditorCanvas {
       }
       this.drawSmallRect(node.x, node.y, null, color, false);
     });
-  }
-
-  addNode(e: MouseEvent) {
-    const inearest = this.nearestNodeIndex(
-      e.clientX - this.canvas.offsetLeft,
-      e.clientY - this.canvas.offsetTop
-    );
-    const nearest = inearest == null ? null : this.nodes.getNode(inearest);
-
-    this.nodes.addNode({
-      x: e.clientX - this.canvas.offsetLeft,
-      y: e.clientY - this.canvas.offsetTop,
-      erodibility: nearest
-        ? nearest.erodibility
-        : (MAX_ERODIBILITY + MIN_ERODIBILITY) / 2,
-      is_ocean: nearest ? nearest.is_ocean : false,
-    });
-    this.nodeChoosen = this.nodes.getNodes().length - 1;
-  }
-
-  removeNodeAll() {
-    this.nodes = new Nodes();
-    this.nearestBuffer = null;
-    this.updateContext();
   }
 }
 

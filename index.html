@@ -2,27 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="icon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WEB Simulator for terrain-rs</title>
+    <title>Procedural Terrain Simulator</title>
   </head>
   <body>
-    <h1>WEB Simulator for terrain-rs</h1>
-    <h3>テンプレート</h3>
+    <div id="banner-container">
+      <img src="terrain.webp" id="banner-image" alt="terrain" />
+      
+      <p id="banner-text">
+        <span class="large-text">Procedural Terrain Simulator</span><br>
+        based on <a href="https://github.com/TadaTeruki/procedural-terrain-rs">https://github.com/TadaTeruki/procedural-terrain-rs</a>
+      </p>
+      
+    </div>
+    <h3>Templates</h3>
     <div class="container">
       <div>
-        <h2>入力</h2>
+        <h2>Input</h2>
         <canvas id="canvas-editor" width="500" height="500" tabindex="1"></canvas>  
         <p>
-          <button type="button" id="button-new">+ ノードを作成</button>
-          <button type="button" id="button-removeall">すべて削除</button>
-          <br>
-          <h3>選択中のノード</h3>
-          <div class="container">
+          <div class="info-container">
+            <h3>Node Info:</h3>
             <div>
-              <label for="slider-x">侵食速度</label>
+              <label for="slider-x">Erosion Rate</label>
               <br>
-              <label for="ocean-checkbox">海にする</label>
+              <label for="ocean-checkbox">Ocean</label>
             </div>
             <div>        
               <input type="range" id="erodibility-slider" name="erodibility-slider" min="0" max="100" value="50">   
@@ -30,15 +35,18 @@
               <input type="checkbox" id="ocean-checkbox" name="ocean-checkbox" value="0">
             </div>
           </div>
-
+          <br>
+          <button type="button" id="button-new">+ Add Nodes</button>
+          <button type="button" id="button-removeall">Delete All Nodes</button>
         </p>
       </div>
       <div class="splitter"></div>
       <div>
-        <h2>出力</h2>
+        <h2>Output</h2>
         <canvas id="canvas-terrain" width="500" height="500" tabindex="1"></canvas>
-        <br>
-        <button type="button" id="button-start">生成</button>
+        <p>
+          <button type="button" id="button-start">Generate</button>
+        </p>
       </div>
 
     </div>
