@@ -1,42 +1,27 @@
 use naturalneighbor::{Lerpable, Point};
-use serde::{Deserialize, Serialize};
-use terrain::{
+use node::{parse_nodes, Node};
+use procedural_terrain::{
     core::attributes::TerrainAttributes,
     lem::generator::TerrainGenerator,
     models::surface::{builder::TerrainModel2DBulider, sites::Site2D},
 };
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
-#[derive(Default, Serialize, Deserialize, Clone)]
+mod node;
+mod preview;
+
 #[wasm_bindgen]
-pub struct Node {
-    pub x: f64,
-    pub y: f64,
-    pub erodibility: f64,
-    pub is_ocean: bool,
-}
-
-impl From<Node> for Point {
-    fn from(val: Node) -> Self {
-        Point { x: val.x, y: val.y }
-    }
-}
-
-impl Lerpable for Node {
-    fn lerp(&self, other: &Self, t: f64) -> Self {
-        Node {
-            x: self.x.lerp(&other.x, t),
-            y: self.y.lerp(&other.y, t),
-            erodibility: self.erodibility.lerp(&other.erodibility, t),
-            is_ocean: {
-                if t < 0.5 {
-                    self.is_ocean
-                } else {
-                    other.is_ocean
-                }
-            },
-        }
-    }
+pub fn nearest_node_buffer(
+    buffer_width: u32,
+    buffer_height: u32,
+    pixel_scale: u32,
+    nodes: Vec<JsValue>,
+) -> Vec<f64> {
+    let nodes = parse_nodes(nodes, 1.0, 1.0);
+    preview::set_nearest_node_buffer(buffer_width, buffer_height, pixel_scale, nodes)
+        .into_iter()
+        .flatten()
+        .collect::<Vec<f64>>()
 }
 
 #[wasm_bindgen]
@@ -44,41 +29,42 @@ pub fn run_terrain_generator(
     canvas: web_sys::HtmlCanvasElement,
     img_width: u32,
     img_height: u32,
+    n: u32,
+    edge_node: u32,
     nodes: Vec<JsValue>,
 ) {
-    let n = 50000;
-
     let bound_max = Site2D {
         x: 200.0 * 1e3,
         y: 200.0 * 1e3 * (img_height as f64 / img_width as f64),
     };
 
-    let nodes = nodes
-        .into_iter()
-        .map(|node| {
-            let node: Node = serde_wasm_bindgen::from_value(node).unwrap();
-            Node {
-                x: node.x / (img_width as f64) * bound_max.x,
-                y: node.y / (img_height as f64) * bound_max.y,
-                erodibility: node.erodibility,
-                is_ocean: node.is_ocean,
-            }
-        })
-        .collect::<Vec<Node>>();
+    let nodes = parse_nodes(
+        nodes,
+        bound_max.x / img_width as f64,
+        bound_max.y / img_height as f64,
+    );
 
     let corners = [
         (0.0, 0.0),
-        (bound_max.x / 2.0, 0.0),
         (bound_max.x, 0.0),
-        (bound_max.x, bound_max.y / 2.0),
         (bound_max.x, bound_max.y),
-        (bound_max.x / 2.0, bound_max.y),
         (0.0, bound_max.y),
-        (0.0, bound_max.y / 2.0),
     ];
 
     let corner_nodes = corners
         .iter()
+        .enumerate()
+        .map(|(i, _)| {
+            let node1 = corners[i];
+            let node2 = corners[(i + 1) % corners.len()];
+            (0..edge_node)
+                .map(|j| {
+                    let t = j as f64 / edge_node as f64;
+                    (node1.0.lerp(&node2.0, t), node1.1.lerp(&node2.1, t))
+                })
+                .collect::<Vec<_>>()
+        })
+        .flatten()
         .map(|(x, y)| {
             let nearest = nodes
                 .iter()
@@ -87,8 +73,8 @@ pub fn run_terrain_generator(
                 .unwrap()
                 .0;
             Node {
-                x: *x,
-                y: *y,
+                x,
+                y,
                 erodibility: nearest.erodibility,
                 is_ocean: nearest.is_ocean,
             }
@@ -155,7 +141,8 @@ pub fn run_terrain_generator(
     let max_shadow_altitude = 350.;
     let cmp_dist = 0.5 * 1e3;
 
-    let mut buffer = image::RgbImage::new(img_width, img_height);
+    let mut buffer: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
+        image::RgbImage::new(img_width, img_height);
 
     for imgx in 0..img_width {
         for imgy in 0..img_height {

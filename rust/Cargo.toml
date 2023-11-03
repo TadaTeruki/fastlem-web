@@ -15,8 +15,7 @@ serde-wasm-bindgen = "0.6"
 image = "0.24"
 rand = "0.8"
 noise = {version = "0.8.2", features = ["images"]}
-terrain = { git = "https://github.com/TadaTeruki/terrain-rs" }
-terrain_visualizer = { git = "https://github.com/TadaTeruki/terrain-visualizer" }
+procedural-terrain = { git = "https://github.com/TadaTeruki/procedural-terrain-rs" }
 getrandom = { version = "0.2", features = ["js"] }
 naturalneighbor = "1.1"
 kdtree = "0.7"

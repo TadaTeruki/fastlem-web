@@ -550,6 +550,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "procedural-terrain"
+version = "0.1.0"
+source = "git+https://github.com/TadaTeruki/procedural-terrain-rs#060bca741c26979187ae7aa775a3a4ee778bcc4f"
+dependencies = [
+ "naturalneighbor",
+ "rtree_rs",
+ "terrain-graph",
+ "voronoice",
+]
+
+[[package]]
 name = "qoi"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -702,11 +713,10 @@ dependencies = [
  "kdtree",
  "naturalneighbor",
  "noise",
+ "procedural-terrain",
  "rand 0.8.5",
  "serde",
  "serde-wasm-bindgen",
- "terrain",
- "terrain_visualizer",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -825,30 +835,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "terrain"
-version = "0.1.0"
-source = "git+https://github.com/TadaTeruki/terrain-rs#33d47f52a388687605879adba678ae85d26ef3e1"
-dependencies = [
- "naturalneighbor",
- "rtree_rs",
- "terrain-graph",
- "voronoice",
-]
-
-[[package]]
 name = "terrain-graph"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c52ae88b2158d9722be735bbe7dc7a0fb104801822ee427fead7789ca95384fe"
-
-[[package]]
-name = "terrain_visualizer"
-version = "0.1.0"
-source = "git+https://github.com/TadaTeruki/terrain-visualizer#e4d3bae6749f59a4580a7e763a9aa69d600fa8c6"
-dependencies = [
- "image 0.24.7",
- "rand 0.8.5",
-]
 
 [[package]]
 name = "thiserror"
