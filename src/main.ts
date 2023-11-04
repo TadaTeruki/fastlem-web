@@ -1,7 +1,7 @@
 import init, {
   run_terrain_generator,
   nearest_node_buffer,
-} from "../rust/pkg/rust.js";
+} from "./rust/pkg/rust.js";
 import "./style.css";
 
 const MAX_ERODIBILITY = 0.8;
