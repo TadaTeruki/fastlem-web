@@ -40,12 +40,6 @@ class Nodes {
     return this.nodes.length;
   }
 }
-
-function updateTerrainCanvas(nodes: Nodes) {
-  let canvas = document.getElementById("canvas-terrain") as HTMLCanvasElement;
-  run_terrain_generator(canvas, canvas.width, canvas.height, 30000, 10, nodes.getNodes());
-}
-
 class Colormap {
   colors: Array<[number, number, number]>;
   weights: Array<number>;
@@ -119,6 +113,24 @@ class EditorCanvas {
     };
   }
 
+  updateTerrainCanvas(
+    img_width: number,
+    img_height: number,
+    nodes: Nodes,
+    grayscale: boolean
+  ) {
+    return run_terrain_generator(
+      this.canvas.width,
+      this.canvas.height,
+      img_width,
+      img_height,
+      30000,
+      3,
+      nodes.getNodes(),
+      grayscale
+    );
+  }
+
   getCursorX(e: MouseEvent) {
     const rect = this.canvas.getBoundingClientRect();
     return e.clientX - rect.left;
@@ -175,7 +187,56 @@ class EditorCanvas {
     }
   }
 
+  loadTemplate(i: number) {
+    fetch("template" + i + ".json")
+      .then((response) => response.json())
+      .then((data) => {
+        this.nodes = new Nodes();
+        data.forEach((node: Node) => {
+          this.nodes.addNode(node);
+        });
+        this.setImage();
+        this.updateContext();
+      });
+  }
+
   start() {
+    // load templates
+    const templateNum = 3;
+    for (let i = 1; i <= templateNum; i++) {
+      const templateButton = document.getElementById(
+        "button-template" + i
+      ) as HTMLButtonElement;
+      templateButton.addEventListener("click", () => {
+        if (
+          !confirm(
+            "Are you sure to load this template? All nodes will be removed."
+          )
+        ) {
+          return;
+        }
+        this.loadTemplate(i);
+      });
+    }
+
+    this.loadTemplate(1);
+
+    const removeButton = document.getElementById(
+      "button-remove"
+    ) as HTMLButtonElement;
+    removeButton.addEventListener("click", () => {
+      if (this.nodeChoosen != null) {
+        this.nodes.deleteNode(this.nodeChoosen);
+        if (this.nodes.getNodes().length == 0) {
+          this.removeNodeAll();
+        }
+        this.nodeChoosen = null;
+        this.nodeCreation = false;
+        this.setImage();
+        this.updateContext();
+      }
+    });
+
     const resetButton = document.getElementById(
       "button-removeall"
     ) as HTMLButtonElement;
@@ -191,6 +252,13 @@ class EditorCanvas {
     ) as HTMLCanvasElement;
     newButton.addEventListener("click", () => {
       this.nodeCreation = true;
+    });
+
+    const saveButton = document.getElementById(
+      "button-save"
+    ) as HTMLCanvasElement;
+    saveButton.addEventListener("click", () => {
+      this.saveImageGrayscale(1024);
     });
 
     const erodibilitySlider = document.getElementById(
@@ -227,7 +295,17 @@ class EditorCanvas {
       "button-start"
     ) as HTMLButtonElement;
     startButton.addEventListener("click", () => {
-      updateTerrainCanvas(this.nodes);
+      let imageData = this.updateTerrainCanvas(
+        this.canvas.width,
+        this.canvas.height,
+        this.nodes,
+        false
+      );
+      let canvas = document.getElementById(
+        "canvas-terrain"
+      ) as HTMLCanvasElement;
+      let ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+      ctx.putImageData(imageData, 0, 0);
     });
 
     this.canvas.addEventListener("mousedown", (e) => {
@@ -387,6 +465,27 @@ class EditorCanvas {
       this.canvas.height
     );
     this.ctx.putImageData(imageData, 0, 0);
+  }
+
+  saveImageGrayscale(width: number) {
+    let imageData = this.updateTerrainCanvas(width, width, this.nodes, true);
+
+    let canvas = document.createElement("canvas") as HTMLCanvasElement;
+    canvas.width = width;
+    canvas.height = width;
+
+    let ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    ctx.putImageData(imageData, 0, 0);
+
+    let img = new Image();
+    img.src = canvas.toDataURL("image/png");
+
+    img.onload = function () {
+      var link = document.createElement("a");
+      link.href = img.src;
+      link.download = "terrain.png";
+      link.click();
+    };
   }
 
   setImage() {

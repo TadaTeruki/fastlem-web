@@ -1,54 +1,97 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="icon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Procedural Terrain Simulator</title>
+    <title>Generating Procedural Terrain with LEM</title>
   </head>
   <body>
     <div id="banner-container">
       <img src="terrain.webp" id="banner-image" alt="terrain" />
-      
+
       <p id="banner-text">
-        <span class="large-text">Procedural Terrain Simulator</span><br>
-        based on <a href="https://github.com/TadaTeruki/procedural-terrain-rs">https://github.com/TadaTeruki/procedural-terrain-rs</a>
+        <span class="large-text">Generating Procedural Terrain with LEM</span
+        ><br />
+        based on
+        <a href="https://github.com/TadaTeruki/procedural-terrain-rs"
+          >https://github.com/TadaTeruki/procedural-terrain-rs</a
+        >
       </p>
-      
     </div>
-    <h3>Templates</h3>
+    <h2>Choose Templates</h2>
+    <button type="button" id="button-template1" class="button-template">
+      Basic
+    </button>
+    <button type="button" id="button-template2" class="button-template">
+      Caldera
+    </button>
+    <button type="button" id="button-template3" class="button-template">
+      Islands
+    </button>
+    <br /><br />
     <div class="container">
       <div>
         <h2>Input</h2>
-        <canvas id="canvas-editor" width="500" height="500" tabindex="1"></canvas>  
-        <p>
-          <div class="info-container">
-            <h3>Node Info:</h3>
+        <canvas
+          id="canvas-editor"
+          width="500"
+          height="500"
+          tabindex="1"
+        ></canvas>
+        <div class="info-container">
+          <div class="info-subcontainer">
             <div>
-              <label for="slider-x">Erosion Rate</label>
-              <br>
-              <label for="ocean-checkbox">Ocean</label>
+              <label for="slider-x">Erodibility</label>
             </div>
-            <div>        
-              <input type="range" id="erodibility-slider" name="erodibility-slider" min="0" max="100" value="50">   
-              <br>       
-              <input type="checkbox" id="ocean-checkbox" name="ocean-checkbox" value="0">
+            <div>
+              <input
+                type="range"
+                id="erodibility-slider"
+                name="erodibility-slider"
+                min="0"
+                max="100"
+                value="50"
+              />
+              <div id="erodibility-slider-memory"></div>
             </div>
           </div>
-          <br>
-          <button type="button" id="button-new">+ Add Nodes</button>
-          <button type="button" id="button-removeall">Delete All Nodes</button>
-        </p>
+          <div class="info-subcontainer">
+            <div>
+              <label for="ocean-checkbox">Is Ocean?</label>
+            </div>
+            <div>
+              <input
+                type="checkbox"
+                id="ocean-checkbox"
+                name="ocean-checkbox"
+                value="0"
+              />
+            </div>
+          </div>
+        </div>
+        <br />
+        <button type="button" id="button-new">+ Add Nodes</button>
+        <button type="button" id="button-remove">Delete Node</button>
+        <button type="button" id="button-removeall">Delete All Nodes</button>
       </div>
       <div class="splitter"></div>
       <div>
         <h2>Output</h2>
-        <canvas id="canvas-terrain" width="500" height="500" tabindex="1"></canvas>
+        <canvas
+          id="canvas-terrain"
+          width="500"
+          height="500"
+          tabindex="1"
+        ></canvas>
         <p>
           <button type="button" id="button-start">Generate</button>
+          <br />
+          <button type="button" id="button-save">
+            Download Heightmap (.png)
+          </button>
         </p>
       </div>
-
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

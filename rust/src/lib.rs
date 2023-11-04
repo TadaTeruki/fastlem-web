@@ -5,7 +5,9 @@ use procedural_terrain::{
     lem::generator::TerrainGenerator,
     models::surface::{builder::TerrainModel2DBulider, sites::Site2D},
 };
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
+use rand::{Rng, SeedableRng};
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use web_sys::ImageData;
 
 mod node;
 mod preview;
@@ -26,22 +28,24 @@ pub fn nearest_node_buffer(
 
 #[wasm_bindgen]
 pub fn run_terrain_generator(
-    canvas: web_sys::HtmlCanvasElement,
+    surface_width: u32,
+    surface_height: u32,
     img_width: u32,
     img_height: u32,
     n: u32,
     edge_node: u32,
     nodes: Vec<JsValue>,
-) {
+    grayscale: bool,
+) -> ImageData {
     let bound_max = Site2D {
         x: 200.0 * 1e3,
-        y: 200.0 * 1e3 * (img_height as f64 / img_width as f64),
+        y: 200.0 * 1e3 * (surface_height as f64 / surface_width as f64),
     };
 
     let nodes = parse_nodes(
         nodes,
-        bound_max.x / img_width as f64,
-        bound_max.y / img_height as f64,
+        bound_max.x / surface_width as f64,
+        bound_max.y / surface_height as f64,
     );
 
     let corners = [
@@ -54,7 +58,7 @@ pub fn run_terrain_generator(
     let corner_nodes = corners
         .iter()
         .enumerate()
-        .map(|(i, _)| {
+        .flat_map(|(i, _)| {
             let node1 = corners[i];
             let node2 = corners[(i + 1) % corners.len()];
             (0..edge_node)
@@ -64,7 +68,6 @@ pub fn run_terrain_generator(
                 })
                 .collect::<Vec<_>>()
         })
-        .flatten()
         .map(|(x, y)| {
             let nearest = nodes
                 .iter()
@@ -85,10 +88,12 @@ pub fn run_terrain_generator(
 
     let node_interpolator = naturalneighbor::Interpolator::new(&nodes);
 
+    let mut rng = rand::rngs::StdRng::seed_from_u64(0);
+
     let nodes = (0..n)
         .filter_map(|_| {
-            let x = rand::random::<f64>() * bound_max.x;
-            let y = rand::random::<f64>() * bound_max.y;
+            let x = rng.gen_range(0.0..bound_max.x);
+            let y = rng.gen_range(0.0..bound_max.y);
             let opnode = node_interpolator.interpolate(&nodes, Point { x, y });
             opnode.map(|node| Node {
                 x,
@@ -144,10 +149,30 @@ pub fn run_terrain_generator(
     let mut buffer: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
         image::RgbImage::new(img_width, img_height);
 
+    let colors = {
+        if grayscale {
+            vec![([0, 0, 0], 0.0), ([255, 255, 255], 1.0)]
+        } else {
+            vec![
+                ([50, 130, 200], 0.0),
+                ([240, 240, 210], 0.005),
+                // water level
+                ([190, 200, 120], 0.05),
+                ([180, 200, 80], 0.2),
+                ([25, 100, 25], 0.75),
+                ([15, 60, 15], 1.0),
+            ]
+        }
+    };
+
+    let crop_prop = 0.9;
+
     for imgx in 0..img_width {
         for imgy in 0..img_height {
             let x = bound_max.x * (imgx as f64 / img_width as f64);
             let y = bound_max.y * (imgy as f64 / img_height as f64);
+            let x = x * crop_prop + bound_max.x * (1.0 - crop_prop) * 0.5;
+            let y = y * crop_prop + bound_max.y * (1.0 - crop_prop) * 0.5;
             let site = Site2D { x, y };
             let altitude = terrain.get_altitude(&site);
 
@@ -157,16 +182,6 @@ pub fn run_terrain_generator(
             });
             if let (Some(altitude), Some(altitude2)) = (altitude, altitude2) {
                 let prop = altitude / max_altitude;
-
-                let colors: [([u8; 3], f64); 6] = [
-                    ([50, 130, 200], 0.0),
-                    ([240, 240, 210], 0.005),
-                    // water level
-                    ([190, 200, 120], 0.05),
-                    ([180, 200, 80], 0.2),
-                    ([25, 100, 25], 0.75),
-                    ([15, 60, 15], 1.0),
-                ];
 
                 let color: [u8; 3] = {
                     let mut color = [0, 0, 0];
@@ -197,18 +212,23 @@ pub fn run_terrain_generator(
                     }
                 };
 
+                if grayscale {
+                    buffer.put_pixel(imgx, imgy, image::Rgb(color));
+                    continue;
+                }
+
                 let brightness = 1.0
                     - (((altitude - altitude2) / max_shadow_altitude).atan() / 1.57).min(1.0)
                         * (prop * 0.8 + 0.2)
-                    + 0.05 * rand::random::<f64>();
+                    + 0.05 * rng.gen_range(0.0..1.0);
 
-                let shaded_color = [
+                let color = [
                     (color[0] as f64 * brightness) as u8,
                     (color[1] as f64 * brightness) as u8,
                     (color[2] as f64 * brightness) as u8,
                 ];
 
-                buffer.put_pixel(imgx, imgy, image::Rgb(shaded_color));
+                buffer.put_pixel(imgx, imgy, image::Rgb(color));
             }
         }
     }
@@ -219,23 +239,10 @@ pub fn run_terrain_generator(
         u8_buffer.extend_from_slice(&[pixel[0], pixel[1], pixel[2], 255]);
     }
     let data = wasm_bindgen::Clamped(u8_buffer);
-
-    // CanvasRenderingContext2d を取得
-    let ctx = canvas
-        .get_context("2d")
-        .unwrap()
-        .unwrap()
-        .dyn_into::<web_sys::CanvasRenderingContext2d>()
-        .unwrap();
-
-    // ImageData を作成
-    let image_data = web_sys::ImageData::new_with_u8_clamped_array_and_sh(
+    web_sys::ImageData::new_with_u8_clamped_array_and_sh(
         wasm_bindgen::Clamped(&data),
         width,
         height,
     )
-    .unwrap();
-
-    // Canvas に描画
-    ctx.put_image_data(&image_data, 0.0, 0.0).unwrap();
+    .unwrap()
 }
