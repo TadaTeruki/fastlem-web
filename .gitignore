@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 # for rust
-rust/target/*
+src/rust/target/*
