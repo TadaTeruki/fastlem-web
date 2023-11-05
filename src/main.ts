@@ -4,8 +4,8 @@ import init, {
 } from "./rust/pkg/rust.js";
 import "./style.css";
 
-const MAX_ERODIBILITY = 1.0;
-const MIN_ERODIBILITY = 0.0;
+const MAX_ERODIBILITY = 1.5;
+const MIN_ERODIBILITY = 0.1;
 const NODES_NUM = 30000;
 
 type Node = {
