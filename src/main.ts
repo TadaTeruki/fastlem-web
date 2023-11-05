@@ -4,8 +4,9 @@ import init, {
 } from "./rust/pkg/rust.js";
 import "./style.css";
 
-const MAX_ERODIBILITY = 0.8;
-const MIN_ERODIBILITY = 0.2;
+const MAX_ERODIBILITY = 1.0;
+const MIN_ERODIBILITY = 0.0;
+const NODES_NUM = 30000;
 
 type Node = {
   x: number;
@@ -124,7 +125,7 @@ class EditorCanvas {
       this.canvas.height,
       img_width,
       img_height,
-      30000,
+      NODES_NUM,
       3,
       nodes.getNodes(),
       grayscale
@@ -258,7 +259,7 @@ class EditorCanvas {
       "button-save"
     ) as HTMLCanvasElement;
     saveButton.addEventListener("click", () => {
-      this.saveImageGrayscale(1024);
+      this.saveImageGrayscale(2048);
     });
 
     const erodibilitySlider = document.getElementById(
