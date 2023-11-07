@@ -17,6 +17,24 @@ button {
   padding: 0.5rem;
   border-radius: 0.2rem;
   font-weight: bold;
+  background-color: rgb(240, 240, 240);
+}
+
+button:hover {
+  background-color: rgb(220, 220, 220);
+}
+
+button:active {
+  background-color: rgb(200, 200, 200);
+}
+
+input {
+  border: 1px solid gray;
+  margin: 0.2rem;
+  padding: 0.2rem;
+  border-radius: 0.2rem;
+  font-weight: bold;
+  width: 5rem;
 }
 
 .container {
@@ -80,7 +98,6 @@ button {
 }
 
 #button-start:active {
-  /*background-color: rgb(0, 0, 200);*/
   animation-iteration-count: infinite;
   animation-duration: 0.5s;
   animation-name: expansion;

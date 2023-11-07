@@ -9,17 +9,14 @@
 */
 export function nearest_node_buffer(buffer_width: number, buffer_height: number, pixel_scale: number, nodes: any[]): Float64Array;
 /**
-* @param {number} surface_width
-* @param {number} surface_height
-* @param {number} img_width
-* @param {number} img_height
-* @param {number} n
+* @param {number} image_width
+* @param {number} image_height
+* @param {number} node_num
 * @param {number} edge_node
 * @param {any[]} nodes
-* @param {boolean} grayscale
-* @returns {ImageData}
+* @returns {TerrainObject}
 */
-export function run_terrain_generator(surface_width: number, surface_height: number, img_width: number, img_height: number, n: number, edge_node: number, nodes: any[], grayscale: boolean): ImageData;
+export function run_terrain_generator(image_width: number, image_height: number, node_num: number, edge_node: number, nodes: any[]): TerrainObject;
 /**
 */
 export class Node {
@@ -37,13 +34,26 @@ export class Node {
 */
   y: number;
 }
+/**
+*/
+export class TerrainObject {
+  free(): void;
+/**
+* @param {number} x
+* @param {number} y
+* @returns {number}
+*/
+  get_altitude(x: number, y: number): number;
+}
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly nearest_node_buffer: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
-  readonly run_terrain_generator: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => number;
+  readonly __wbg_terrainobject_free: (a: number) => void;
+  readonly terrainobject_get_altitude: (a: number, b: number, c: number) => number;
+  readonly run_terrain_generator: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
   readonly __wbg_node_free: (a: number) => void;
   readonly __wbg_get_node_x: (a: number) => number;
   readonly __wbg_set_node_x: (a: number, b: number) => void;
@@ -57,7 +67,6 @@ export interface InitOutput {
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
-  readonly __wbindgen_exn_store: (a: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

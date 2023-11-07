@@ -1,12 +1,17 @@
 import init, {
   run_terrain_generator,
   nearest_node_buffer,
+  TerrainObject,
 } from "./rust/pkg/rust.js";
 import "./style.css";
 
-const MAX_ERODIBILITY = 1.5;
+const MAX_ERODIBILITY = 1.25;
 const MIN_ERODIBILITY = 0.1;
 const NODES_NUM = 30000;
+const MAX_ALTITUDE = 8000.0;
+const MAX_SHADOW_ALTITUDE = 500.0;
+const SHADOW_INDEX_DIST = 1;
+const CLOP_EDGE_PIXELS = 3;
 
 type Node = {
   x: number;
@@ -41,16 +46,13 @@ class Nodes {
     return this.nodes.length;
   }
 }
+
 class Colormap {
   colors: Array<[number, number, number]>;
   weights: Array<number>;
-  constructor() {
-    this.colors = [
-      [190, 200, 120],
-      [180, 200, 80],
-      [25, 100, 25],
-    ];
-    this.weights = [0.0, 0.2, 1.0];
+  constructor(colors: Array<[number, number, number]>, weights: Array<number>) {
+    this.colors = colors;
+    this.weights = weights;
   }
 
   getColor(value: number) {
@@ -95,6 +97,82 @@ class Buffer {
   }
 }
 
+class TerrainData {
+  surfaceWidth: number;
+  surfaceHeight: number;
+  cropEdgePixels: number;
+  shadowIndexDist: number;
+  nodeNum: number;
+  terrainObject: TerrainObject | null = null;
+
+  constructor(
+    imageWidth: number,
+    imageHeight: number,
+    cropEdgePixels: number,
+    shadowIndexDist: number,
+    nodeNum: number
+  ) {
+    this.surfaceWidth = imageWidth;
+    this.surfaceHeight = imageHeight;
+    this.cropEdgePixels = cropEdgePixels;
+    this.shadowIndexDist = shadowIndexDist;
+    this.nodeNum = nodeNum;
+    this.terrainObject = null;
+  }
+
+  render(nodes: Nodes) {
+    this.terrainObject = run_terrain_generator(
+      this.surfaceWidth + this.cropEdgePixels * 2 + this.shadowIndexDist,
+      this.surfaceHeight + this.cropEdgePixels * 2 + this.shadowIndexDist,
+      NODES_NUM,
+      3,
+      nodes.getNodes()
+    );
+    return this;
+  }
+
+  createImageData(
+    colormap: Colormap,
+    shadow: boolean,
+    outputWidth: number = this.surfaceWidth,
+    outputHeight: number = this.surfaceHeight
+  ) {
+    const imageData = new ImageData(outputWidth, outputHeight);
+    for (let imgx = 0; imgx < outputWidth; imgx++) {
+      for (let imgy = 0; imgy < outputHeight; imgy++) {
+        const x =
+          ((imgx + this.cropEdgePixels) * this.surfaceWidth) / outputWidth;
+        const y =
+          ((imgy + this.cropEdgePixels) * this.surfaceHeight) / outputHeight;
+        const altitude = this.terrainObject!.get_altitude(x, y);
+        const prop = altitude / MAX_ALTITUDE;
+        const color = colormap.getColor(prop);
+
+        let brightness = 1.0;
+
+        if (shadow) {
+          const altitude2 = this.terrainObject!.get_altitude(
+            x + this.shadowIndexDist,
+            y + this.shadowIndexDist
+          );
+          brightness =
+            1.0 -
+            Math.atan((altitude - altitude2) / MAX_SHADOW_ALTITUDE) / 1.57 +
+            0.05 * Math.random();
+        }
+
+        const imageIndex = imgy * outputWidth + imgx;
+
+        imageData.data[imageIndex * 4 + 0] = color[0] * brightness;
+        imageData.data[imageIndex * 4 + 1] = color[1] * brightness;
+        imageData.data[imageIndex * 4 + 2] = color[2] * brightness;
+        imageData.data[imageIndex * 4 + 3] = 255;
+      }
+    }
+    return imageData;
+  }
+}
+
 class EditorCanvas {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -103,6 +181,7 @@ class EditorCanvas {
   pixelScale: number = 1;
   nearestBuffer: Buffer | null = null;
   nodeChoosen: number | null = null;
+  terrainData: TerrainData;
 
   constructor() {
     this.canvas = document.getElementById("canvas-editor") as HTMLCanvasElement;
@@ -112,23 +191,12 @@ class EditorCanvas {
     this.canvas.oncontextmenu = function () {
       return false;
     };
-  }
-
-  updateTerrainCanvas(
-    img_width: number,
-    img_height: number,
-    nodes: Nodes,
-    grayscale: boolean
-  ) {
-    return run_terrain_generator(
+    this.terrainData = new TerrainData(
       this.canvas.width,
       this.canvas.height,
-      img_width,
-      img_height,
-      NODES_NUM,
-      3,
-      nodes.getNodes(),
-      grayscale
+      CLOP_EDGE_PIXELS,
+      SHADOW_INDEX_DIST,
+      NODES_NUM
     );
   }
 
@@ -259,7 +327,10 @@ class EditorCanvas {
       "button-save"
     ) as HTMLCanvasElement;
     saveButton.addEventListener("click", () => {
-      this.saveImageGrayscale(2048);
+      const resolution = document.getElementById(
+        "resolution"
+      ) as HTMLInputElement;
+      this.saveImageGrayscale(parseInt(resolution.value));
     });
 
     const erodibilitySlider = document.getElementById(
@@ -296,12 +367,22 @@ class EditorCanvas {
       "button-start"
     ) as HTMLButtonElement;
     startButton.addEventListener("click", () => {
-      let imageData = this.updateTerrainCanvas(
-        this.canvas.width,
-        this.canvas.height,
-        this.nodes,
-        false
+      this.terrainData.render(this.nodes);
+
+      const colormap = new Colormap(
+        [
+          [50, 130, 200],
+          [240, 240, 210],
+          [190, 200, 120],
+          [180, 200, 80],
+          [25, 100, 25],
+          [15, 60, 15],
+        ],
+        [0.0, 0.001, 0.015, 0.05, 0.2, 0.3]
       );
+
+      let imageData = this.terrainData.createImageData(colormap, true);
+
       let canvas = document.getElementById(
         "canvas-terrain"
       ) as HTMLCanvasElement;
@@ -406,7 +487,14 @@ class EditorCanvas {
 
     const oceanShadow = 2;
 
-    const colormap = new Colormap();
+    const colormap = new Colormap(
+      [
+        [190, 200, 120],
+        [180, 200, 80],
+        [25, 100, 25],
+      ],
+      [0.0, 0.2, 1.0]
+    );
 
     for (let y = 0; y < bufferHeight; y++) {
       for (let x = 0; x < bufferWidth; x++) {
@@ -469,7 +557,18 @@ class EditorCanvas {
   }
 
   saveImageGrayscale(width: number) {
-    let imageData = this.updateTerrainCanvas(width, width, this.nodes, true);
+    let imageData = this.terrainData.createImageData(
+      new Colormap(
+        [
+          [0, 0, 0],
+          [255, 255, 255],
+        ],
+        [0.0, 1.0]
+      ),
+      false,
+      width,
+      width
+    );
 
     let canvas = document.createElement("canvas") as HTMLCanvasElement;
     canvas.width = width;
