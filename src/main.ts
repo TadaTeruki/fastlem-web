@@ -8,8 +8,8 @@ import "./style.css";
 const MAX_ERODIBILITY = 1.25;
 const MIN_ERODIBILITY = 0.1;
 const NODES_NUM = 30000;
-const MAX_ALTITUDE = 8000.0;
-const MAX_SHADOW_ALTITUDE = 500.0;
+const MAX_ALTITUDE = 100.0;
+const MAX_SHADOW_ALTITUDE = 5.0;
 const SHADOW_INDEX_DIST = 1;
 const CLOP_EDGE_PIXELS = 3;
 
@@ -44,6 +44,10 @@ class Nodes {
 
   length() {
     return this.nodes.length;
+  }
+
+  createJson() {
+    return JSON.stringify(this.nodes);
   }
 }
 
@@ -157,7 +161,7 @@ class TerrainData {
           );
           brightness =
             1.0 -
-            Math.atan((altitude - altitude2) / MAX_SHADOW_ALTITUDE) / 1.57 +
+            Math.atan((altitude - altitude2) / MAX_SHADOW_ALTITUDE) / 3.14 +
             0.05 * Math.random();
         }
 
@@ -266,6 +270,8 @@ class EditorCanvas {
         });
         this.setImage();
         this.updateContext();
+        this.nodeChoosen = null;
+        this.nodeCreation = false;
       });
   }
 
@@ -314,6 +320,8 @@ class EditorCanvas {
         return;
       }
       this.removeNodeAll();
+      this.nodeChoosen = null;
+      this.nodeCreation = false;
     });
 
     const newButton = document.getElementById(
@@ -371,14 +379,13 @@ class EditorCanvas {
 
       const colormap = new Colormap(
         [
-          [50, 130, 200],
+          [70, 150, 200],
           [240, 240, 210],
           [190, 200, 120],
-          [180, 200, 80],
           [25, 100, 25],
           [15, 60, 15],
         ],
-        [0.0, 0.001, 0.015, 0.05, 0.2, 0.3]
+        [0.0, 0.001, 0.015, 0.3, 0.5]
       );
 
       let imageData = this.terrainData.createImageData(colormap, true);
@@ -388,6 +395,9 @@ class EditorCanvas {
       ) as HTMLCanvasElement;
       let ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
       ctx.putImageData(imageData, 0, 0);
+
+      let json = this.nodes.createJson();
+      console.log(json);
     });
 
     this.canvas.addEventListener("mousedown", (e) => {

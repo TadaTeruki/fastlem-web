@@ -167,6 +167,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "fastlem"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6f2d9270823462508224d4d37b1db9a221547288cbd3c1a6cf4f05e7ab6668e"
+dependencies = [
+ "naturalneighbor",
+ "rtree_rs",
+ "terrain-graph",
+ "voronoice",
+]
+
+[[package]]
 name = "fdeflate"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -544,17 +556,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "procedural-terrain"
-version = "0.1.0"
-source = "git+https://github.com/TadaTeruki/procedural-terrain-rs#15d3231afb011e8749bdb23c8a498a00b7e6b803"
-dependencies = [
- "naturalneighbor",
- "rtree_rs",
- "terrain-graph",
- "voronoice",
-]
-
-[[package]]
 name = "qoi"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -702,12 +703,12 @@ dependencies = [
 name = "rust"
 version = "0.1.0"
 dependencies = [
+ "fastlem",
  "getrandom 0.2.10",
  "image 0.24.7",
  "kdtree",
  "naturalneighbor",
  "noise",
- "procedural-terrain",
  "rand 0.8.5",
  "serde",
  "serde-wasm-bindgen",

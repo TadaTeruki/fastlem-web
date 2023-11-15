@@ -1,18 +1,18 @@
-use naturalneighbor::{Lerpable, Point};
-use node::{parse_nodes, Node};
-use procedural_terrain::{
+use fastlem::{
     core::attributes::TerrainAttributes,
     lem::generator::TerrainGenerator,
-    models::surface::{builder::TerrainModel2DBulider, sites::Site2D, terrain::Terrain2D}
+    models::surface::{builder::TerrainModel2DBulider, sites::Site2D, terrain::Terrain2D},
 };
+use naturalneighbor::{Lerpable, Point};
+use node::{parse_nodes, Node};
 use rand::{Rng, SeedableRng};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 mod node;
 mod preview;
 
-static SURFACE_DIST: f64 = 200. * 1e3;
-static COMMON_UPLIFT_RATE: f64 = 100.;
+static SURFACE_DIST: f64 = 200.;
+static COMMON_UPLIFT_RATE: f64 = 1.;
 
 #[wasm_bindgen]
 pub fn nearest_node_buffer(
@@ -157,30 +157,17 @@ pub fn run_terrain_generator(
         .set_attributes(
             nodes
                 .iter()
-                .map(|node| TerrainAttributes::new(0.0, COMMON_UPLIFT_RATE, node.erodibility, None))
+                .map(|node| TerrainAttributes::new(0.0, node.erodibility, COMMON_UPLIFT_RATE, None))
                 .collect::<Vec<TerrainAttributes>>(),
         )
         .generate()
         .unwrap();
 
-    TerrainObject { terrain, scale: Site2D { x: bound_max.x / image_width as f64 , y: bound_max.y / image_height as f64 } }
-    /*
-    (0..image_height)
-        .flat_map(|y| {
-            (0..image_width)
-                .map(|x| {
-                    let x = bound_max.x * (x as f64 / image_width as f64);
-                    let y = bound_max.y * (y as f64 / image_height as f64);
-                    let site = Site2D { x, y };
-                    let altitude = terrain.get_altitude(&site);
-                    if let Some(altitude) = altitude {
-                        altitude
-                    } else {
-                        -1.0
-                    }
-                })
-                .collect::<Vec<f64>>()
-        })
-        .collect::<Vec<f64>>()
-    */
+    TerrainObject {
+        terrain,
+        scale: Site2D {
+            x: bound_max.x / image_width as f64,
+            y: bound_max.y / image_height as f64,
+        },
+    }
 }
