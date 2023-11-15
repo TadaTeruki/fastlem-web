@@ -161,7 +161,7 @@ class TerrainData {
           );
           brightness =
             1.0 -
-            Math.atan((altitude - altitude2) / MAX_SHADOW_ALTITUDE) / 3.14 +
+            Math.atan((altitude - altitude2) / MAX_SHADOW_ALTITUDE) /3.14 +
             0.05 * Math.random();
         }
 
@@ -395,9 +395,6 @@ class EditorCanvas {
       ) as HTMLCanvasElement;
       let ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
       ctx.putImageData(imageData, 0, 0);
-
-      let json = this.nodes.createJson();
-      console.log(json);
     });
 
     this.canvas.addEventListener("mousedown", (e) => {

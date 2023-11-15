@@ -4,32 +4,31 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="icon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Generating Procedural Terrain with LEM</title>
+    <title>fastlem - web simulator</title>
   </head>
   <body>
     <div id="banner-container">
       <img src="terrain.webp" id="banner-image" alt="terrain" />
 
       <p id="banner-text">
-        <span class="large-text">Generating Procedural Terrain with LEM</span
-        ><br />
-        based on
-        <a href="https://github.com/TadaTeruki/procedural-terrain-rs"
-          >https://github.com/TadaTeruki/procedural-terrain-rs</a
+        <span class="large-text">fastlem - web simulator</span><br />
+        <a href="https://github.com/TadaTeruki/fastlem"
+          >https://github.com/TadaTeruki/fastlem</a
         >
       </p>
     </div>
-    <h2>Choose Templates</h2>
-    <button type="button" id="button-template1" class="button-template">
-      Basic
-    </button>
-    <button type="button" id="button-template2" class="button-template">
-      Caldera
-    </button>
-    <button type="button" id="button-template3" class="button-template">
-      Islands
-    </button>
-    <br /><br />
+    <p>
+      Templates:
+      <button type="button" id="button-template1" class="button-template">
+        Basic
+      </button>
+      <button type="button" id="button-template2" class="button-template">
+        Caldera
+      </button>
+      <button type="button" id="button-template3" class="button-template">
+        Islands
+      </button>
+    </p>
     <div class="container">
       <div>
         <h2>Input</h2>
@@ -41,24 +40,23 @@
         ></canvas>
         <div class="info-container">
           <div class="info-subcontainer">
-            <div>
-              <label for="slider-x">Erodibility</label>
-            </div>
-            <div>
-              <input
-                type="range"
-                id="erodibility-slider"
-                name="erodibility-slider"
-                min="0"
-                max="100"
-                value="50"
-              />
-              <div id="erodibility-slider-memory"></div>
-            </div>
+            <label for="slider-x"
+              >Erodibility <span class="small-text">(0.1-1.25)</span> :</label
+            >
+            <div id="erodibility-slider-circle-left"></div>
+            <input
+              type="range"
+              id="erodibility-slider"
+              name="erodibility-slider"
+              min="0"
+              max="100"
+              value="50"
+            />
+            <div id="erodibility-slider-circle-right"></div>
           </div>
           <div class="info-subcontainer">
             <div>
-              <label for="ocean-checkbox">Is Ocean?</label>
+              <label for="ocean-checkbox">Is Ocean? :</label>
             </div>
             <div>
               <input
